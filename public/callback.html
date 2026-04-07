@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Autenticando...</title>
+</head>
+<body>
+  <p>Autenticação concluída. Fechando janela...</p>
+  <script>
+    if (window.opener) {
+      // Envia o hash da URL (que contém o access_token do Supabase) para a janela principal
+      window.opener.postMessage(
+        { type: 'OAUTH_AUTH_SUCCESS', hash: window.location.hash },
+        '*'
+      );
+      window.close();
+    } else {
+      document.body.innerHTML = '<p>Erro: Janela principal não encontrada. Feche esta aba e tente novamente.</p>';
+    }
+  </script>
+</body>
+</html>
