@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { generatePostMessage } from '../services/geminiService';
 import { supabase } from '../services/supabaseClient';
 import { uploadImage, savePost, saveUpload, getPostsByUser, deletePost, updatePost } from '../services/dbService';
 import { Post } from '../types';
 import { motion } from 'motion/react';
 import imageCompression from 'browser-image-compression';
-import { Sparkles, User, Calendar, Palette, Image as ImageIcon, Loader2, LogOut, CheckCircle2, HeartHandshake, PenTool, History, Clock, ChevronRight, Trash2, MessageSquare, Users, Smartphone, LayoutTemplate, Plus, Settings } from 'lucide-react';
+import { Sparkles, User, Calendar, Palette, Image as ImageIcon, Loader2, LogOut, CheckCircle2, HeartHandshake, PenTool, History, Clock, ChevronRight, Trash2, MessageSquare, Users, Smartphone, LayoutTemplate, Plus, Settings, ShieldCheck } from 'lucide-react';
 import { HomenagemStepper } from '../components/HomenagemStepper';
 import { UserSettingsModal } from '../components/UserSettingsModal';
 import { HistorySkeleton } from '../components/Skeleton';
@@ -33,7 +33,31 @@ export default function Dashboard() {
   const [isStepperOpen, setIsStepperOpen] = useState(true);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'criar' | 'historico'>('criar');
+  const [profile, setProfile] = useState<any>(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    async function fetchProfile() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+        
+        if (error) {
+          console.error('Erro ao buscar perfil:', error);
+        } else {
+          console.log('Perfil carregado:', data);
+          setProfile(data);
+        }
+      } else {
+        console.warn('Usuário não autenticado');
+      }
+    }
+    fetchProfile();
+  }, []);
 
   const grausIntimidade = [
     "Amigo Próximo",
@@ -378,6 +402,16 @@ export default function Dashboard() {
                 </button>
               </div>
             </div>
+            
+            {profile?.role === 'admin' && (
+              <Link 
+                to="/admin" 
+                className="mb-6 flex items-center justify-center gap-2 p-4 bg-slate-900 text-white rounded-xl border-2 border-indigo-500 shadow-lg hover:scale-[1.02] transition-transform"
+              >
+                <ShieldCheck size={20} className="text-indigo-400" />
+                <span className="font-bold">Painel de Gestão CriarteAI</span>
+              </Link>
+            )}
             
             <HomenagemStepper 
               isOpen={isStepperOpen} 

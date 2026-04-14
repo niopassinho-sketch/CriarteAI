@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Sparkles, Wand2, CheckCircle2 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { enhanceImageWithIA } from '../services/geminiService';
+import { GoogleGenAI, Type } from "@google/genai";
 
 interface OverlayItem {
   emoji: string;
@@ -45,109 +46,52 @@ export function AIImageEnhancer({ imageFile, onEnhancementComplete }: AIImageEnh
       reader.onerror = reject;
     });
 
-  // 🔥 Fallback inteligente COMPLETO
-  const generateFallbackOverlays = (prompt: string): OverlayItem[] => {
-    const lower = prompt.toLowerCase();
-
-    if (lower.includes("anivers")) {
+  // 🔥 Fallback inteligente COMPLETO usando Gemini
+  const generateFallbackOverlays = async (prompt: string): Promise<OverlayItem[]> => {
+    const apiKey = (typeof window !== 'undefined' && window.process?.env?.GEMINI_API_KEY) 
+      || (typeof process !== 'undefined' && process.env?.GEMINI_API_KEY)
+      || import.meta.env.VITE_GEMINI_API_KEY;
+    
+    if (!apiKey) {
+      // Fallback estático se a API key não estiver disponível
       return [
-        { emoji: "🎉", position: "top-right", size: "small", opacity: 0.6 },
-        { emoji: "🎂", position: "bottom-left", size: "small", opacity: 0.6 },
-        { emoji: "🎈", position: "top-left", size: "small", opacity: 0.5 }
+        { emoji: "✨", position: "top-right", size: "small", opacity: 0.4 },
+        { emoji: "💫", position: "bottom-left", size: "small", opacity: 0.4 }
       ];
     }
 
-    if (lower.includes("amor") || lower.includes("romant") || lower.includes("casal")) {
+    const ai = new GoogleGenAI({ apiKey });
+
+    try {
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: `Analise o prompt: "${prompt}". Sugira uma lista de 3 emojis relevantes e criativos para decorar uma imagem com esse tema. Retorne APENAS um JSON no formato: [{"emoji": "...", "position": "top-left", "size": "small", "opacity": 0.6}, ...]`,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                emoji: { type: Type.STRING },
+                position: { type: Type.STRING },
+                size: { type: Type.STRING },
+                opacity: { type: Type.NUMBER }
+              }
+            }
+          }
+        }
+      });
+      
+      const jsonStr = response.text || '[]';
+      return JSON.parse(jsonStr);
+    } catch (error) {
+      console.error("Erro ao gerar overlays com Gemini:", error);
       return [
-        { emoji: "❤️", position: "top-right", size: "small", opacity: 0.5 },
-        { emoji: "💖", position: "bottom-left", size: "small", opacity: 0.5 },
-        { emoji: "💕", position: "top-left", size: "small", opacity: 0.4 }
+        { emoji: "✨", position: "top-right", size: "small", opacity: 0.4 },
+        { emoji: "💫", position: "bottom-left", size: "small", opacity: 0.4 }
       ];
     }
-
-    if (lower.includes("casamento") || lower.includes("noiva")) {
-      return [
-        { emoji: "💍", position: "top-right", size: "small", opacity: 0.6 },
-        { emoji: "👰", position: "bottom-left", size: "small", opacity: 0.5 },
-        { emoji: "🤵", position: "top-left", size: "small", opacity: 0.5 }
-      ];
-    }
-
-    if (lower.includes("formatura") || lower.includes("graduação")) {
-      return [
-        { emoji: "🎓", position: "top-right", size: "small", opacity: 0.6 },
-        { emoji: "📜", position: "bottom-left", size: "small", opacity: 0.5 },
-        { emoji: "✨", position: "top-left", size: "small", opacity: 0.4 }
-      ];
-    }
-
-    if (lower.includes("amizade") || lower.includes("amigo")) {
-      return [
-        { emoji: "🤝", position: "top-right", size: "small", opacity: 0.6 },
-        { emoji: "😊", position: "bottom-left", size: "small", opacity: 0.5 },
-        { emoji: "💙", position: "top-left", size: "small", opacity: 0.4 }
-      ];
-    }
-
-    if (lower.includes("pai")) {
-      return [
-        { emoji: "👨", position: "top-right", size: "small", opacity: 0.6 },
-        { emoji: "💙", position: "bottom-left", size: "small", opacity: 0.5 },
-        { emoji: "👏", position: "top-left", size: "small", opacity: 0.4 }
-      ];
-    }
-
-    if (lower.includes("mãe") || lower.includes("mae") || lower.includes("mamãe")) {
-      return [
-        { emoji: "👩", position: "top-right", size: "small", opacity: 0.6 },
-        { emoji: "🌸", position: "bottom-left", size: "small", opacity: 0.5 },
-        { emoji: "💖", position: "top-left", size: "small", opacity: 0.4 }
-      ];
-    }
-
-    if (lower.includes("mulher")) {
-      return [
-        { emoji: "🌹", position: "top-right", size: "small", opacity: 0.6 },
-        { emoji: "💜", position: "bottom-left", size: "small", opacity: 0.5 },
-        { emoji: "✨", position: "top-left", size: "small", opacity: 0.4 }
-      ];
-    }
-
-    if (lower.includes("natal")) {
-      return [
-        { emoji: "🎄", position: "top-right", size: "small", opacity: 0.6 },
-        { emoji: "🎅", position: "bottom-left", size: "small", opacity: 0.5 },
-        { emoji: "❄️", position: "top-left", size: "small", opacity: 0.4 }
-      ];
-    }
-
-    if (lower.includes("ano novo") || lower.includes("reveillon")) {
-      return [
-        { emoji: "🎆", position: "top-right", size: "small", opacity: 0.6 },
-        { emoji: "🥂", position: "bottom-left", size: "small", opacity: 0.5 },
-        { emoji: "✨", position: "top-left", size: "small", opacity: 0.4 }
-      ];
-    }
-
-    if (lower.includes("batizado") || lower.includes("batismo")) {
-      return [
-        { emoji: "👶", position: "top-right", size: "small", opacity: 0.6 },
-        { emoji: "🕊️", position: "bottom-left", size: "small", opacity: 0.5 },
-        { emoji: "🙏", position: "top-left", size: "small", opacity: 0.4 }
-      ];
-    }
-
-    if (lower.includes("luto") || lower.includes("homenagem")) {
-      return [
-        { emoji: "🕊️", position: "top-right", size: "small", opacity: 0.4 },
-        { emoji: "🤍", position: "top-left", size: "small", opacity: 0.3 }
-      ];
-    }
-
-    return [
-      { emoji: "✨", position: "top-right", size: "small", opacity: 0.4 },
-      { emoji: "💫", position: "bottom-left", size: "small", opacity: 0.4 }
-    ];
   };
 
   const buildSmartPrompt = (userPrompt: string) => {
@@ -185,7 +129,7 @@ ${userPrompt}
 
       // 🔥 GARANTIA DE EMOJIS
       if (!result.overlays || result.overlays.length === 0) {
-        result.overlays = generateFallbackOverlays(iaPrompt);
+        result.overlays = await generateFallbackOverlays(iaPrompt);
       }
 
       setEnhancementResults(result);
