@@ -27,7 +27,7 @@ export const generatePostMessage = async (topic: string, redeSocial: string = 'G
   4. Assinatura: NÃO inclua o nome do remetente na legenda.
   5. Sempre inclua a hashtag #CriarteAI no final de todas as opções de mensagem geradas.`;
 
-  const response = await fetch('/api/gemini', {
+  const response = await fetch('/gemini-proxy-v2', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -77,7 +77,7 @@ export const generateLongCaption = async (
   - Inclua hashtags relevantes no final, de acordo com a rede social, e sempre inclua a hashtag #CriarteAI.
   `;
 
-  const response = await fetch('/api/gemini', {
+  const response = await fetch('/gemini-proxy-v2', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -98,7 +98,7 @@ export const enhanceImageWithIA = async (imageB64: string, userPrompt: string) =
   const base64Clean = imageB64.replace(/^data:image\/\w+;base64,/, "");
 
   try {
-    const response = await fetch('/api/gemini', {
+    const response = await fetch('/gemini-proxy-v2', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
