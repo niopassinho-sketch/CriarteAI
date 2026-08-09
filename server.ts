@@ -2,6 +2,7 @@ import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
+import "dotenv/config";
 
 async function startServer() {
   const app = express();
@@ -11,6 +12,7 @@ async function startServer() {
 
   // Gemini API Proxy
   app.post("/api/gemini", async (req, res) => {
+    console.log("Recebida requisição em /api/gemini");
     const { prompt, model, config } = req.body;
     const apiKey = process.env.GEMINI_API_KEY;
 

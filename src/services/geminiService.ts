@@ -1,4 +1,4 @@
-import { GoogleGenAI, Type } from "@google/genai";
+import { Type } from "@google/genai";
 
 export const generatePostMessage = async (topic: string, redeSocial: string = 'Genérica'): Promise<string[]> => {
   let promptRedeSocial = '';
@@ -36,9 +36,9 @@ export const generatePostMessage = async (topic: string, redeSocial: string = 'G
       config: {
         responseMimeType: "application/json",
         responseSchema: {
-          type: "ARRAY",
+          type: Type.ARRAY,
           items: {
-            type: "STRING"
+            type: Type.STRING
           }
         }
       }
@@ -65,17 +65,6 @@ export const generateLongCaption = async (
   wordCount: number,
   additionalInfo: string
 ): Promise<string> => {
-  // Acessa a chave através do globalThis/window para evitar que o Vite substitua por {} no build
-  const apiKey = (typeof window !== 'undefined' && window.process?.env?.GEMINI_API_KEY) 
-    || (typeof process !== 'undefined' && process.env?.GEMINI_API_KEY)
-    || import.meta.env.VITE_GEMINI_API_KEY;
-  
-  if (!apiKey) {
-    throw new Error("Chave da API do Gemini não encontrada.");
-  }
-
-  const ai = new GoogleGenAI({ apiKey });
-  
   const finalPrompt = `Você é um redator especialista em criar homenagens emocionantes e detalhadas.
   
   Crie um texto longo (uma história ou homenagem expandida) sobre o seguinte tema: ${topic}
@@ -88,41 +77,46 @@ export const generateLongCaption = async (
   - Inclua hashtags relevantes no final, de acordo com a rede social, e sempre inclua a hashtag #CriarteAI.
   `;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
-    contents: finalPrompt,
+  const response = await fetch('/api/gemini', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      prompt: finalPrompt,
+      model: "gemini-3-flash-preview",
+    })
   });
-  
-  return response.text || "Erro ao gerar texto. Tente novamente.";
+
+  if (!response.ok) {
+    throw new Error("Erro na API");
+  }
+
+  const data = await response.json();
+  return data.text || "Erro ao gerar texto. Tente novamente.";
 };
 
 export const enhanceImageWithIA = async (imageB64: string, userPrompt: string) => {
-  const apiKey = (typeof window !== 'undefined' && window.process?.env?.GEMINI_API_KEY) 
-    || (typeof process !== 'undefined' && process.env?.GEMINI_API_KEY)
-    || import.meta.env.VITE_GEMINI_API_KEY;
-
-  if (!apiKey) throw new Error("Configuração de API indisponível.");
-
-  const ai = new GoogleGenAI({ apiKey });
   const base64Clean = imageB64.replace(/^data:image\/\w+;base64,/, "");
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: {
-        parts: [
-          { inlineData: { mimeType: "image/jpeg", data: base64Clean } },
-          { text: `Editor de Arte. Analise a imagem e o pedido: "${userPrompt}".` }
-        ]
-      },
-      config: {
-        systemInstruction: "Retorne APENAS JSON: {filter: string, overlayEmoji: string|null, borderColor: string|null, suggestion: string}.",
-        responseMimeType: "application/json",
-      }
+    const response = await fetch('/api/gemini', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt: `Editor de Arte. Analise a imagem e o pedido: "${userPrompt}".`,
+        model: "gemini-3-flash-preview",
+        config: {
+          systemInstruction: "Retorne APENAS JSON: {filter: string, overlayEmoji: string|null, borderColor: string|null, suggestion: string}.",
+          responseMimeType: "application/json",
+        }
+      })
     });
 
-    const text = response.text || "{}";
-    // Tenta encontrar o objeto JSON dentro da resposta, ignorando texto extra
+    if (!response.ok) {
+      throw new Error("Erro na API");
+    }
+
+    const data = await response.json();
+    const text = data.text || "{}";
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     const cleanedText = jsonMatch ? jsonMatch[0] : text.replace(/```json\n?|\n?```/g, "").trim();
     return JSON.parse(cleanedText);
