@@ -1,17 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
 export const generatePostMessage = async (topic: string, redeSocial: string = 'Genérica'): Promise<string[]> => {
-  // Acessa a chave através do globalThis/window para evitar que o Vite substitua por {} no build
-  const apiKey = (typeof window !== 'undefined' && window.process?.env?.GEMINI_API_KEY) 
-    || (typeof process !== 'undefined' && process.env?.GEMINI_API_KEY)
-    || import.meta.env.VITE_GEMINI_API_KEY;
-  
-  if (!apiKey) {
-    throw new Error("Chave da API do Gemini não encontrada. Se estiver no modo de edição, use o preview interno. Na versão compartilhada (Share), isso funcionará automaticamente.");
-  }
-
-  const ai = new GoogleGenAI({ apiKey });
-  
   let promptRedeSocial = '';
   if (redeSocial === 'Instagram') {
     promptRedeSocial = 'Adapte o texto para o Instagram: foco em visual, tom mais engajador. Inclua de 3 a 5 hashtags populares e visuais no final (ex: #homenagem #amor #aniversario #gratidao #instamoment #criatividade #inspiracao #celebração).';
@@ -38,23 +27,32 @@ export const generatePostMessage = async (topic: string, redeSocial: string = 'G
   4. Assinatura: NÃO inclua o nome do remetente na legenda.
   5. Sempre inclua a hashtag #CriarteAI no final de todas as opções de mensagem geradas.`;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
-    contents: finalPrompt,
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: Type.ARRAY,
-        items: {
-          type: Type.STRING
+  const response = await fetch('/api/gemini', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      prompt: finalPrompt,
+      model: "gemini-3-flash-preview",
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: "ARRAY",
+          items: {
+            type: "STRING"
+          }
         }
       }
-    }
+    })
   });
+
+  if (!response.ok) {
+    throw new Error("Erro na API");
+  }
+
+  const data = await response.json();
   
   try {
-    const jsonStr = response.text || '[]';
-    return JSON.parse(jsonStr);
+    return typeof data.text === 'string' ? JSON.parse(data.text) : data.text;
   } catch (error) {
     console.error("Erro ao fazer parse do JSON do Gemini:", error);
     return ["Erro ao gerar opções. Tente novamente."];
