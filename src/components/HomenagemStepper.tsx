@@ -256,8 +256,8 @@ export const HomenagemStepper: React.FC<HomenagemStepperProps> = ({ isOpen, onCl
             </div>
           ) : (
             <>
-              {steps[step].type === 'text' && <input type="text" value={data[steps[step].field as keyof typeof data]} onChange={(e) => setData({...data, [steps[step].field]: e.target.value})} className="w-full p-4 mb-6 bg-slate-900/50 border border-slate-700 text-white rounded-xl placeholder:text-slate-500" />}
-              {steps[step].type === 'select' && <select value={data[steps[step].field as keyof typeof data]} onChange={(e) => setData({...data, [steps[step].field]: e.target.value})} className="w-full p-4 mb-6 bg-slate-900/50 border border-slate-700 text-white rounded-xl"><option value="">Selecione...</option>{steps[step].options?.map(o => <option key={o} value={o}>{o}</option>)}</select>}
+              {steps[step].type === 'text' && <input type="text" value={String(data[steps[step].field as keyof typeof data] ?? '')} onChange={(e) => setData({...data, [steps[step].field]: e.target.value})} className="w-full p-4 mb-6 bg-slate-900/50 border border-slate-700 text-white rounded-xl placeholder:text-slate-500" />}
+              {steps[step].type === 'select' && <select value={String(data[steps[step].field as keyof typeof data] ?? '')} onChange={(e) => setData({...data, [steps[step].field]: e.target.value})} className="w-full p-4 mb-6 bg-slate-900/50 border border-slate-700 text-white rounded-xl"><option value="">Selecione...</option>{steps[step].options?.map(o => <option key={o} value={o}>{o}</option>)}</select>}
               {steps[step].type === 'assinatura' && (
                 <div className="space-y-4">
                   <input type="text" placeholder="Seu nome" value={data.autorNome} onChange={(e) => setData({...data, autorNome: e.target.value})} className="w-full p-4 bg-slate-900/50 border border-slate-700 text-white rounded-xl placeholder:text-slate-500" />

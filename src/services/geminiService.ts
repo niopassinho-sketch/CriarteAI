@@ -1,4 +1,44 @@
-import { Type } from "@google/genai";
+async function postToGeminiProxy(body: any): Promise<any> {
+  const endpoints = ['/gemini-proxy-v2', '/api/gemini-proxy-v2', '/api/gemini/generate'];
+  let lastError = new Error('Falha ao comunicar com o servidor');
+
+  for (const endpoint of endpoints) {
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+
+      if (response.status === 404) {
+        // Tenta o próximo endpoint
+        continue;
+      }
+
+      if (!response.ok) {
+        let errorMsg = `Erro na API (${response.status})`;
+        try {
+          const errorData = await response.json();
+          if (errorData?.error) {
+            errorMsg = errorData.error;
+          }
+        } catch {
+          // ignore json parse error
+        }
+        throw new Error(errorMsg);
+      }
+
+      return await response.json();
+    } catch (err: any) {
+      lastError = err;
+      if (err.message && !err.message.includes('404')) {
+        throw err;
+      }
+    }
+  }
+
+  throw lastError;
+}
 
 export const generatePostMessage = async (topic: string, redeSocial: string = 'Genérica'): Promise<string[]> => {
   let promptRedeSocial = '';
@@ -27,30 +67,20 @@ export const generatePostMessage = async (topic: string, redeSocial: string = 'G
   4. Assinatura: NÃO inclua o nome do remetente na legenda.
   5. Sempre inclua a hashtag #CriarteAI no final de todas as opções de mensagem geradas.`;
 
-  const response = await fetch('/gemini-proxy-v2', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      prompt: finalPrompt,
-      model: "gemini-3-flash-preview",
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.STRING
-          }
+  const data = await postToGeminiProxy({
+    prompt: finalPrompt,
+    model: "gemini-3-flash-preview",
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: "ARRAY",
+        items: {
+          type: "STRING"
         }
       }
-    })
+    }
   });
 
-  if (!response.ok) {
-    throw new Error("Erro na API");
-  }
-
-  const data = await response.json();
-  
   try {
     return typeof data.text === 'string' ? JSON.parse(data.text) : data.text;
   } catch (error) {
@@ -77,45 +107,25 @@ export const generateLongCaption = async (
   - Inclua hashtags relevantes no final, de acordo com a rede social, e sempre inclua a hashtag #CriarteAI.
   `;
 
-  const response = await fetch('/gemini-proxy-v2', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      prompt: finalPrompt,
-      model: "gemini-3-flash-preview",
-    })
+  const data = await postToGeminiProxy({
+    prompt: finalPrompt,
+    model: "gemini-3-flash-preview",
   });
 
-  if (!response.ok) {
-    throw new Error("Erro na API");
-  }
-
-  const data = await response.json();
   return data.text || "Erro ao gerar texto. Tente novamente.";
 };
 
 export const enhanceImageWithIA = async (imageB64: string, userPrompt: string) => {
-  const base64Clean = imageB64.replace(/^data:image\/\w+;base64,/, "");
-
   try {
-    const response = await fetch('/gemini-proxy-v2', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        prompt: `Editor de Arte. Analise a imagem e o pedido: "${userPrompt}".`,
-        model: "gemini-3-flash-preview",
-        config: {
-          systemInstruction: "Retorne APENAS JSON: {filter: string, overlayEmoji: string|null, borderColor: string|null, suggestion: string}.",
-          responseMimeType: "application/json",
-        }
-      })
+    const data = await postToGeminiProxy({
+      prompt: `Editor de Arte. Analise a imagem e o pedido: "${userPrompt}".`,
+      model: "gemini-3-flash-preview",
+      config: {
+        systemInstruction: "Retorne APENAS JSON: {filter: string, overlayEmoji: string|null, borderColor: string|null, suggestion: string}.",
+        responseMimeType: "application/json",
+      }
     });
 
-    if (!response.ok) {
-      throw new Error("Erro na API");
-    }
-
-    const data = await response.json();
     const text = data.text || "{}";
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     const cleanedText = jsonMatch ? jsonMatch[0] : text.replace(/```json\n?|\n?```/g, "").trim();

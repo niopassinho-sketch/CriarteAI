@@ -70,8 +70,8 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-[#030014]">
       {/* Animated Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none -z-10">
-        {/* Noise overlay */}
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
+        {/* Subtle overlay */}
+        <div className="absolute inset-0 bg-slate-900/10 pointer-events-none"></div>
         
         {/* Grid pattern */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
