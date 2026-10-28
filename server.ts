@@ -27,9 +27,12 @@ async function startServer() {
         config: config
       });
       res.json({ text: response.text });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Erro na API do Gemini" });
+    } catch (error: any) {
+      console.error("Erro na API do Gemini:", error);
+      if (error.status === 400 || error.message?.includes("API key")) {
+        return res.status(401).json({ error: "Chave da API (GEMINI_API_KEY) inválida ou não autorizada." });
+      }
+      res.status(500).json({ error: "Erro interno ao comunicar com a API do Gemini." });
     }
   });
 
